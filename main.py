@@ -1,9 +1,12 @@
-import data
+
+
 from selenium import webdriver
-from selenium.webdriver import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
+import data
+from UrbanMethods import UrbanRoutesMethods
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+
+
 
 
 # no modificar
@@ -34,24 +37,8 @@ def retrieve_phone_code(driver) -> str:
         return code
 
 
-class UrbanRoutesPage:
-    from_field = (By.ID, 'from')
-    to_field = (By.ID, 'to')
 
-    def __init__(self, driver):
-        self.driver = driver
 
-    def set_from(self, from_address):
-        self.driver.find_element(*self.from_field).send_keys(from_address)
-
-    def set_to(self, to_address):
-        self.driver.find_element(*self.to_field).send_keys(to_address)
-
-    def get_from(self):
-        return self.driver.find_element(*self.from_field).get_property('value')
-
-    def get_to(self):
-        return self.driver.find_element(*self.to_field).get_property('value')
 
 
 
@@ -61,21 +48,51 @@ class TestUrbanRoutes:
 
     @classmethod
     def setup_class(cls):
-        # no lo modifiques, ya que necesitamos un registro adicional habilitado para recuperar el código de confirmación del teléfono
-        from selenium.webdriver import DesiredCapabilities
-        capabilities = DesiredCapabilities.CHROME
-        capabilities["goog:loggingPrefs"] = {'performance': 'ALL'}
-        cls.driver = webdriver.Chrome(desired_capabilities=capabilities)
+        options = Options()
+        options.add_argument("--enable-logging")
+        options.add_argument("--v=1")
+        options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
+        cls.driver = webdriver.Chrome(service=Service(), options=options)
+        cls.URMethods= UrbanRoutesMethods(cls.driver)
 
     def test_set_route(self):
         self.driver.get(data.urban_routes_url)
-        routes_page = UrbanRoutesPage(self.driver)
+        routes_page = UrbanRoutesMethods(self.driver)
         address_from = data.address_from
         address_to = data.address_to
         routes_page.set_route(address_from, address_to)
         assert routes_page.get_from() == address_from
         assert routes_page.get_to() == address_to
 
+    def test_click_button_order_taxi_and_comfort_travel(self):
+        self.URMethods.set_choose_comfort()
+
+    def test_add_number_and_code_number(self):
+        self.URMethods.set_add_phone_number(data.phone_number)
+
+
+    def test_add_number_code_phone(self):
+        self.URMethods.set_enter_phone_code(retrieve_phone_code(self.driver))
+
+    def test_set_add_payment_number_and_code_card(self):
+        self.URMethods.set_add_method_payment(data.card_number,data.card_code)
+
+    def test_send_comment_to_driver(self):
+        self.URMethods.send_driver_comment(data.message_for_driver)
+
+
+    def test_choose_blanket(self):
+        self.URMethods.click_slider_round_blanket()
+
+    def test_add_icecream(self):
+        self.URMethods.double_click_icecream()
+
+    def test_click_button_finish_order(self):
+        self.URMethods.click_button_finish_order()
+
+
+    def test_wait_information_modal(self):
+        self.URMethods.wait_taxi_modal()
 
     @classmethod
     def teardown_class(cls):
